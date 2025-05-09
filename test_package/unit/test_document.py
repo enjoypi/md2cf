@@ -319,3 +319,94 @@ Yep.
 """
 
     assert doc.get_document_frontmatter(source_markdown.splitlines(keepends=True)) == {}
+
+
+def test_get_pages_from_directory_with_underscore_dirname_md(fs):
+    fs.create_file("/root-folder/_root-folder.md", contents="# Root Folder Content\nThis is the main content for the root folder.")
+    fs.create_file("/root-folder/page1.md", contents="# Page 1 Content")
+    fs.create_dir("/root-folder/sub-folder")
+    fs.create_file("/root-folder/sub-folder/_sub-folder.md", contents="# Sub Folder Content\nDetails for sub-folder.")
+    fs.create_file("/root-folder/sub-folder/page2.md", contents="# Page 2 Content")
+    fs.create_dir("/root-folder/sub-folder/another-sub")
+    fs.create_file("/root-folder/sub-folder/another-sub/page3.md", contents="# Page 3 Content")
+
+    result = doc.get_pages_from_directory(Path("/root-folder"))
+
+    expected_data = [
+        {
+            "title": "Root Folder Content",
+            "body": "<h1>Root Folder Content</h1>\n<p>This is the main content for the root folder.</p>\n",
+            "file_path": "/root-folder/_root-folder.md",
+            "parent_title": None,
+        },
+        {
+            "title": "Page 1 Content",
+            "body": "<h1>Page 1 Content</h1>\n",
+            "file_path": "/root-folder/page1.md",
+            "parent_title": "Root Folder Content",
+        },
+        {
+            "title": "Sub Folder Content",
+            "body": "<h1>Sub Folder Content</h1>\n<p>Details for sub-folder.</p>\n",
+            "file_path": "/root-folder/sub-folder/_sub-folder.md",
+            "parent_title": "Root Folder Content",
+        },
+        {
+            "title": "Page 2 Content",
+            "body": "<h1>Page 2 Content</h1>\n",
+            "file_path": "/root-folder/sub-folder/page2.md",
+            "parent_title": "Sub Folder Content",
+        },
+        {
+            "title": "another-sub",
+            "body": "",
+            "file_path": None,
+            "parent_title": "Sub Folder Content",
+        },
+        {
+            "title": "Page 3 Content",
+            "body": "<h1>Page 3 Content</h1>\n",
+            "file_path": "/root-folder/sub-folder/another-sub/page3.md",
+            "parent_title": "another-sub",
+        },
+    ]
+
+    expected_pages = [
+        FakePage(
+            title=d["title"],
+            body=d["body"],
+            file_path=Path(d["file_path"]) if d["file_path"] else None,
+            parent_title=d["parent_title"],
+        )
+        for d in expected_data
+    ]
+
+    assert len(result) == len(expected_pages)
+
+    core_fields = ['title', 'parent_title', 'body', 'file_path', 'labels']
+
+    def get_comparable_item(page_obj, is_fake_page=False):
+        if is_fake_page:
+            data_source = getattr(page_obj, 'attrs_to_compare', None)
+            if data_source is None:
+                data_source = page_obj
+
+            data = {}
+            for field in core_fields:
+                value = getattr(data_source, field, None) if not isinstance(data_source, dict) else data_source.get(field)
+
+                if field == 'body' and value is None:
+                    data[field] = ""
+                elif field == 'labels' and value is None:
+                    data[field] = None
+                else:
+                    data[field] = value
+            return data
+        else:
+            data = {field: getattr(page_obj, field, None) for field in core_fields}
+            return data
+
+    result_comparable = sorted([get_comparable_item(p) for p in result], key=lambda x: (str(x.get('parent_title') or ''), str(x.get('title') or '')))
+    expected_comparable = sorted([get_comparable_item(p, is_fake_page=True) for p in expected_pages], key=lambda x: (str(x.get('parent_title') or ''), str(x.get('title') or '')))
+
+    assert result_comparable == expected_comparable

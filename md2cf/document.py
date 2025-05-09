@@ -120,6 +120,22 @@ def get_pages_from_directory(
         if git_repo.is_ignored(current_path):
             continue
 
+        dir_content_file_name = f"_{current_path.name}.md"
+        dir_content_page_data: Optional[Page] = None
+        dir_content_file_path: Optional[Path] = None
+
+        if dir_content_file_name in file_names:
+            dir_content_file_path = current_path / dir_content_file_name
+            if not git_repo.is_ignored(dir_content_file_path):
+                dir_content_page_data = get_page_data_from_file_path(
+                    dir_content_file_path,
+                    strip_header=strip_header,
+                    remove_text_newlines=remove_text_newlines,
+                    enable_relative_links=enable_relative_links,
+                )
+                dir_content_page_data.file_path = dir_content_file_path
+
+
         markdown_files = [
             Path(current_path, file_name)
             for file_name in file_names
@@ -129,6 +145,10 @@ def get_pages_from_directory(
         markdown_files = [
             path for path in markdown_files if not git_repo.is_ignored(path)
         ]
+
+        if dir_content_file_path and dir_content_file_path in markdown_files:
+            markdown_files.remove(dir_content_file_path)
+
 
         folder_data[current_path] = {"n_files": len(markdown_files)}
 
@@ -174,16 +194,49 @@ def get_pages_from_directory(
                 parent_page_title = pages_file_contents["title"]
                 folder_title = parent_page_title
 
+        if dir_content_page_data and dir_content_page_data.title:
+            folder_title = dir_content_page_data.title
+            is_parent_title_default_or_none = (
+                parent_page_title == current_path.name or \
+                (beautify_folders and parent_page_title == current_path.name.replace("-", " ").replace("_", " ").capitalize()) or \
+                parent_page_title is None
+            )
+            if is_parent_title_default_or_none or (use_pages_file and ".pages" not in file_names):
+                 parent_page_title = dir_content_page_data.title
+
+
         folder_data[current_path]["title"] = folder_title
 
         if folder_title is not None and (
-            markdown_files or (directories and not skip_empty and not collapse_empty)
+            markdown_files or directories or dir_content_page_data
+        ) and not (
+            skip_empty and not markdown_files and not dir_content_page_data
+        ) and not (
+            collapse_empty and not markdown_files and not dir_content_page_data
         ):
+
+            page_body = ""
+            page_labels = None
+            page_file_path_for_dir_page = None
+            current_page_relative_links = None
+            current_page_attachments = None
+
+            if dir_content_page_data:
+                page_body = dir_content_page_data.body
+                page_labels = dir_content_page_data.labels
+                page_file_path_for_dir_page = dir_content_page_data.file_path
+                current_page_relative_links = dir_content_page_data.relative_links
+                current_page_attachments = dir_content_page_data.attachments
+
             processed_pages.append(
                 Page(
                     title=folder_title,
                     parent_title=folder_parent_title,
-                    body="",
+                    body=page_body,
+                    file_path=page_file_path_for_dir_page,
+                    labels=page_labels,
+                    relative_links=current_page_relative_links,
+                    attachments=current_page_attachments
                 )
             )
 
