@@ -180,11 +180,11 @@ def get_parser():
         "so the folder doesn't appear",
     )
     dir_group.add_argument(
-        "--no-gitignore",
+        "--no-mdignore",
         action="store_false",
-        dest="use_gitignore",
+        dest="use_mdignore",
         default=True,
-        help="do not use .gitignore files to filter directory search",
+        help="do not use .mdignore files to filter directory search",
     )
     dir_title_group = dir_group.add_mutually_exclusive_group()
     dir_title_group.add_argument(
@@ -695,7 +695,7 @@ def collect_pages_to_upload(args):
                     remove_text_newlines=args.remove_text_newlines,
                     strip_header=args.strip_top_header,
                     use_pages_file=args.use_pages_file,
-                    use_gitignore=args.use_gitignore,
+                    use_mdignore=args.use_mdignore,
                     enable_relative_links=args.enable_relative_links,
                 )
             else:

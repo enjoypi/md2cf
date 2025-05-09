@@ -89,7 +89,7 @@ def get_pages_from_directory(
     use_pages_file: bool = False,
     strip_header: bool = False,
     remove_text_newlines: bool = False,
-    use_gitignore: bool = True,
+    use_mdignore: bool = True,
     enable_relative_links: bool = False,
 ) -> List[Page]:
     """
@@ -103,7 +103,7 @@ def get_pages_from_directory(
     :param use_pages_file:
     :param strip_header:
     :param remove_text_newlines:
-    :param use_gitignore: Use .gitignore files to skip unwanted markdown in directory
+    :param use_mdignore: Use .mdignore files to skip unwanted markdown in directory
       search
     :param enable_relative_links: extract all relative links and replace them with
       placeholders
@@ -112,7 +112,7 @@ def get_pages_from_directory(
     processed_pages = list()
     base_path = file_path.resolve()
     folder_data = dict()
-    git_repo = GitRepository(file_path, use_gitignore=use_gitignore)
+    git_repo = GitRepository(file_path, use_mdignore=use_mdignore)
 
     for current_path, directories, file_names in os.walk(file_path):
         current_path = Path(current_path).resolve()

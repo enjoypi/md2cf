@@ -1,5 +1,5 @@
 """
-Allow checking files for ignored status in gitignore files in the repo.
+Allow checking files for ignored status in mdignore files in the repo.
 """
 from pathlib import Path
 from typing import List
@@ -20,9 +20,9 @@ class GitRepository:
     is_ignored() method.
     """
 
-    def __init__(self, repo_path: Path, use_gitignore=True):
-        self.use_gitignore = use_gitignore
-        self.root_dir = self._find_root_dir(repo_path) if use_gitignore else None
+    def __init__(self, repo_path: Path, use_mdignore=True):
+        self.use_mdignore = use_mdignore
+        self.root_dir = self._find_root_dir(repo_path) if use_mdignore else None
 
     @staticmethod
     def _find_root_dir(start_path: Path):
@@ -42,18 +42,18 @@ class GitRepository:
             p = p.parent
         error_console.log(
             f":warning-emoji: Directory {start_path} is not part of a git "
-            f"repository: gitignore checking disabled."
+            f"repository: mdignore checking disabled."
         )
         return None
 
-    def collect_gitignores(self, filepath: Path) -> List[Path]:
+    def collect_mdignores(self, filepath: Path) -> List[Path]:
         """
-        Collect all .gitignore files from start location to the root of the
+        Collect all .mdignore files from start location to the root of the
         repository. Filepath is assumed to be a subdirectory of the git root.
         If not, an error is printed and an empty list is returned.
 
-        :param filepath: The path to start searching for .gitignore files
-        :return: List of paths to .gitignore files relevant for start_path
+        :param filepath: The path to start searching for .mdignore files
+        :return: List of paths to .mdignore files relevant for start_path
         """
         fs_root = Path("/")
         ret = list()
@@ -62,29 +62,29 @@ class GitRepository:
         if p.is_file():
             p = p.parent
         while p != fs_root:
-            gitignore_file = p.joinpath(".gitignore")
-            if gitignore_file.exists() and gitignore_file.is_file():
-                ret.append(gitignore_file)
+            mdignore_file = p.joinpath(".mdignore")
+            if mdignore_file.exists() and mdignore_file.is_file():
+                ret.append(mdignore_file)
             if p == self.root_dir:
                 return ret
             p = p.parent
 
-        # if not .git directory found, we're not in a git repo and gitignore files
+        # if not .git directory found, we're not in a git repo and mdignore files
         # cannot be trusted.
         return list()
 
     def is_ignored(self, filepath: Path) -> bool:
         """
-        Check if filepath is ignored in the git repository by fetching all gitignores
+        Check if filepath is ignored in the git repository by fetching all mdignores
         in the tree down to the git root and checking all of them.
 
         :param filepath: Path to the file to check if it is ignored.
-        :return: True if the file is ignored in any .gitignore file
+        :return: True if the file is ignored in any .mdignore file
         """
-        if not self.use_gitignore:
+        if not self.use_mdignore:
             return False
         if self.root_dir is None:
             return False
-        gitignores = self.collect_gitignores(filepath)
-        matchers = [gitignorefile.parse(str(g)) for g in gitignores]
+        mdignores = self.collect_mdignores(filepath)
+        matchers = [gitignorefile.parse(str(g)) for g in mdignores]
         return any([m(str(filepath)) for m in matchers])

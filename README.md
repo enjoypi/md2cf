@@ -184,7 +184,7 @@ By default, relative links that point to non-existent files (or files that are n
 
 To help you mirror large documentation to Confluence, `md2cf` allows you to upload entire folders. When using this feature, `md2cf` will recursively traverse all subdirectories and upload any `.md` files it encounters.
 
-By default, `md2cf` will respect your `.gitignore` file and skip any files or folders it defines. If you prefer to upload everything in the folder, use the `--no-gitignore` option.
+By default, `md2cf` will respect your `.mdignore` file and skip any files or folders it defines. If you prefer to upload everything in the folder, use the `--no-mdignore` option.
 
 Please note that Confluence can only nest pages under other pages. As a result, folders will be represented by empty pages with the same title as the folder in the final upload. You can customize this behavior using one of the three command line parameters defined in the next sections.
 

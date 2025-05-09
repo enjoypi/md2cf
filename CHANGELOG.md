@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `--only-changed` now works for attachments (@pmarchini)
 - relative links with URL-encoded paths now work (@mschmieder)
-- folders in `.gitignore` are now actually ignored (@jmonsma)
+- folders in `.mdignore` are now actually ignored (@jmonsma)
 ### Security
 - Updated `requests` to 2.31.0
 
@@ -62,10 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for labels in the Markdown front matter
 - Option to replace all labels with the set specified in the Markdown front matter
 - Option to add a postface to every page
-- Option to ignore `.gitignore` files (@bjorns)
+- Option to ignore `.mdignore` files (@bjorns)
 - Option to remove single newlines from paragraphs (@bjorns)
 ### Changed
-- Skip files and directories listed in `.gitignore` files (@bjorns)
+- Skip files and directories listed in `.mdignore` files (@bjorns)
 
 ## 1.4.0 - 2022-07-27
 ### Added

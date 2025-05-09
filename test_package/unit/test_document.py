@@ -35,7 +35,7 @@ def test_get_pages_from_directory(fs):
 
 
 def test_get_pages_from_directory_use_pages(fs):
-    fs.create_file("/root-folder/.gitignore", contents=ROOT_GITIGNORE)
+    fs.create_file("/root-folder/.mdignore", contents=ROOT_GITIGNORE)
     fs.create_dir("/root-folder/.git")
     fs.create_dir("/root-folder/.git/refs")
     fs.create_file("/root-folder/.git/refs/test.md")
