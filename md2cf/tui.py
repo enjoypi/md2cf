@@ -29,9 +29,12 @@ class Md2cfTUI(object):
                 console=console,
             )
             page_progress.add_task(
-                description="", total=1 + len(page.attachments), start=False
+                description="", total=1 + len(page.attachments or []), start=False
             )
-            self.title_to_progress[page.title] = page_progress
+            page_key_for_dict = (
+                page.original_title if page.original_title else page.title
+            )
+            self.title_to_progress[page_key_for_dict] = page_progress
 
             if page.parent_title:
                 try:
@@ -44,10 +47,13 @@ class Md2cfTUI(object):
                 page_node = tree.add(pretty_title, style="bright")
 
             progress_table.add_row(page_progress)
-            title_to_tree[page.title] = page_node
+            title_to_tree[page_key_for_dict] = page_node
 
-            for attachment in page.attachments:
-                page_node.add(f":paperclip: {attachment}", style="dim")
+            for attachment in page.attachments or []:
+                attachment_name_str = (
+                    attachment.name if hasattr(attachment, "name") else str(attachment)
+                )
+                page_node.add(f":paperclip: {attachment_name_str}", style="dim")
                 attachment_progress = rich.progress.Progress(
                     rich.progress.BarColumn(),
                     rich.progress.SpinnerColumn(finished_text="done"),
@@ -56,9 +62,9 @@ class Md2cfTUI(object):
                 )
                 attachment_progress.add_task(description="", total=1, start=False)
                 progress_table.add_row(attachment_progress)
-                self.title_to_progress[
-                    f"{page.title} {attachment}"
-                ] = attachment_progress
+                self.title_to_progress[f"{page_key_for_dict} {attachment_name_str}"] = (
+                    attachment_progress
+                )
         self.overall_progress = rich.progress.Progress(console=console)
         self.overall_progress.add_task(
             "Total progress",
