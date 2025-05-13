@@ -344,14 +344,15 @@ def main():
 
     for page in pages_to_upload:
         for attachment in page.attachments:
-            if page.file_path is not None:
-                attachment_path = page.file_path.parent.joinpath(attachment)
-            else:
-                attachment_path = attachment
+            # attachment should now be a Path object, potentially absolute
+            # If it came from mermaid processing, it's absolute
+            # If it came from markdown relative path, it should have been resolved in document.py
+            # If it came from markdown absolute path, it's absolute
 
-            if not attachment_path.is_file():
+            # We just need to check if the path object points to an existing file
+            if not attachment.is_file():
                 error_console.log(
-                    f"[bold red]:x: ERROR:[default] attachment {attachment_path} "
+                    f"[bold red]:x: ERROR:[default] attachment {attachment} "
                     f"for page {page.title} does not exist"
                 )
                 sys.exit(1)
@@ -419,16 +420,18 @@ def main():
                         page.original_title, "Processing attachments"
                     )
                     for attachment in page.attachments:
-                        attachment_identifier = f"{page.original_title} {attachment}"
+                        attachment_identifier = (
+                            f"{page.original_title} {attachment.name}"
+                        )
                         tui.start_item_task(attachment_identifier)
                         if not args.dry_run:
                             upsert_attachment_result = upsert_attachment(
                                 confluence=confluence,
-                                attachment=attachment,
+                                page=page,
                                 existing_page=final_page,
+                                attachment_path=attachment,
                                 message=args.message,
                                 only_changed=args.only_changed,
-                                page=page,
                             )
                             tui.set_item_finished_text_from_result(
                                 attachment_identifier, upsert_attachment_result
@@ -442,11 +445,9 @@ def main():
                         tui.tick_item_progress(page.original_title)
                         tui.tick_global_progress()
                 if page.file_path is not None and args.enable_relative_links:
-                    # Skip pages without a file_path
-                    # (e.g. section pages representing directories)
-                    map_document_path_to_confluence_page[
-                        page.file_path.resolve()
-                    ] = final_page
+                    map_document_path_to_confluence_page[page.file_path.resolve()] = (
+                        final_page
+                    )
             except HTTPError as e:
                 if args.debug:
                     console.print_exception(show_locals=True)

@@ -36,16 +36,18 @@ class ConfluenceTag(object):
 
         content = "<{}{}>{}{}</{}>".format(
             namespaced_name,
-            " {}".format(
-                " ".join(
-                    [
-                        '{}="{}"'.format(name, value)
-                        for name, value in sorted(namespaced_attribs.items())
-                    ]
+            (
+                " {}".format(
+                    " ".join(
+                        [
+                            '{}="{}"'.format(name, value)
+                            for name, value in sorted(namespaced_attribs.items())
+                        ]
+                    )
                 )
-            )
-            if namespaced_attribs
-            else "",
+                if namespaced_attribs
+                else ""
+            ),
             "".join([child.render() for child in self.children]),
             "<![CDATA[{}]]>".format(self.text) if self.cdata else self.text,
             namespaced_name,
@@ -154,7 +156,7 @@ class ConfluenceRenderer(mistune.Renderer):
             url_tag = ConfluenceTag(
                 "attachment", attrib={"filename": basename}, namespace="ri"
             )
-            self.attachments.append(src)
+            self.attachments.append(Path(src))
         else:
             url_tag = ConfluenceTag("url", attrib={"value": src}, namespace="ri")
         root_element.append(url_tag)
