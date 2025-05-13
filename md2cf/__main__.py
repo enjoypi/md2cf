@@ -666,16 +666,16 @@ def update_pages_with_relative_links(
 def collect_pages_to_upload(args):
     pages_to_upload: List[Page] = list()
     if not args.file_list:  # Uploading from standard input
-        pages_to_upload.append(
-            md2cf.document.get_page_data_from_lines(
-                sys.stdin.readlines(),
-                strip_header=args.strip_top_header,
-                remove_text_newlines=args.remove_text_newlines,
-                enable_relative_links=False,
-            )
+        page_data = md2cf.document.get_page_data_from_lines(
+            sys.stdin.readlines(),
+            strip_header=args.strip_top_header,
+            remove_text_newlines=args.remove_text_newlines,
+            enable_relative_links=False,  # Relative links from stdin don't make sense
         )
+        if page_data:
+            pages_to_upload.append(page_data)
 
-        if not (pages_to_upload[0].title or args.title):
+        if not pages_to_upload or not (pages_to_upload[0].title or args.title):
             error_console.log(
                 "You must specify a title or have a title in the document "
                 "if uploading from standard input\n"
@@ -687,7 +687,7 @@ def collect_pages_to_upload(args):
     else:
         for file_name in args.file_list:
             if file_name.is_dir():
-                pages_to_upload += md2cf.document.get_pages_from_directory(
+                pages_from_dir = md2cf.document.get_pages_from_directory(
                     file_name,
                     collapse_single_pages=args.collapse_single_pages,
                     skip_empty=args.skip_empty,
@@ -699,44 +699,60 @@ def collect_pages_to_upload(args):
                     use_mdignore=args.use_mdignore,
                     enable_relative_links=args.enable_relative_links,
                 )
+                pages_to_upload.extend(pages_from_dir)
             else:
-                try:
-                    enable_relative_links = (
-                        len(args.file_list) > 1 and args.enable_relative_links
-                    )
-                    pages_to_upload.append(
-                        md2cf.document.get_page_data_from_file_path(
-                            file_name,
-                            strip_header=args.strip_top_header,
-                            remove_text_newlines=args.remove_text_newlines,
-                            enable_relative_links=enable_relative_links,
-                        )
-                    )
-                except FileNotFoundError:
-                    error_console.log(f"File {file_name} does not exist\n")
+                # enable_relative_links should only be true if multiple files are processed
+                # or if a directory is processed. For a single file, it should be false.
+                # However, the current logic for enable_relative_links is complex and
+                # might need further review if issues persist with relative links for single files.
+                # For now, let's assume the enable_relative_links argument is correctly set.
+                is_single_file_mode_for_relative_links = (
+                    not args.enable_relative_links or len(args.file_list) == 1
+                )
+
+                page_data = md2cf.document.get_page_data_from_file_path(
+                    file_name,
+                    strip_header=args.strip_top_header,
+                    remove_text_newlines=args.remove_text_newlines,
+                    enable_relative_links=args.enable_relative_links
+                    and not is_single_file_mode_for_relative_links,
+                )
+                if page_data:
+                    pages_to_upload.append(page_data)
+                # No need for FileNotFoundError here, get_page_data_from_file_path handles it
 
         if len(pages_to_upload) == 1:
             only_page = pages_to_upload[0]
+            # Ensure only_page is not None before proceeding
+            if only_page is not None:
+                if args.title:
+                    only_page.title = args.title
 
-            if args.title:
-                only_page.title = args.title
-
-            # This is implicitly only truthy if relative link processing is active
-            if only_page.relative_links:
-                # This covers the last edge case where directory processing leaves us
-                # with only one page, which we can't anticipate at startup time.
-                # In this case, we have to restore all the links to their original
-                # values.
-                error_console.log(
-                    "Relative links are ignored when there's a single page\n"
-                )
-                for link_data in only_page.relative_links:
-                    only_page.body.replace(
-                        link_data.replacement,
-                        link_data.escaped_original
-                        + (("#" + link_data.fragment) if link_data.fragment else ""),
+                # This is implicitly only truthy if relative link processing is active
+                if only_page.relative_links:
+                    # This covers the last edge case where directory processing leaves us
+                    # with only one page, which we can't anticipate at startup time.
+                    # In this case, we have to restore all the links to their original
+                    # values.
+                    # Also, if only one file is passed and enable_relative_links is true,
+                    # we should inform that relative links are ignored.
+                    error_console.log(
+                        "Relative links are ignored when there's a single page or "
+                        "relative link processing is not enabled for single files.\\n"
                     )
-                only_page.relative_links = []
+                    for link_data in only_page.relative_links:
+                        only_page.body = only_page.body.replace(
+                            link_data.replacement,
+                            link_data.escaped_original
+                            + (
+                                ("#" + link_data.fragment) if link_data.fragment else ""
+                            ),
+                        )
+                    only_page.relative_links = []
+            # If only_page is None (e.g., single invalid file path),
+            # pages_to_upload would contain [None], which should be filtered out earlier.
+            # Or, if we ensured only valid Page objects are added, this branch
+            # for len == 1 would only proceed if a valid page exists.
 
     return pages_to_upload
 
